@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
-import { GoogleGenAI } from "@google/genai"
+import { GoogleGenerativeAI } from "@google/generative-ai"
 import { Database } from "../../../src/types/supabase.ts"
 
 const corsHeaders = {
@@ -68,7 +68,8 @@ Deno.serve(async (req) => {
     const lead = leadRes.data;
     const campaign = campaignRes.data;
 
-    const ai = new GoogleGenAI({ apiKey: Deno.env.get('GEMINI_API_KEY') });
+    const ai = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') || '');
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
     
     const prompt = `
 System Instruction / Persona:
@@ -88,12 +89,8 @@ Generate a highly personalized sales message to this lead, following the system 
     `;
 
     console.info(`[${trackingId}] Calling Gemini API`);
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: prompt,
-    });
-
-    const generatedMessage = response.text;
+    const result = await model.generateContent(prompt);
+    const generatedMessage = result.response.text();
 
     if (!generatedMessage) {
        console.error(`[${trackingId}] Gemini returned empty response`);
