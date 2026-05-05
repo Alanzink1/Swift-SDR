@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { Database } from '../../../../server/src/types/supabase';
 
@@ -45,43 +45,73 @@ export class LeadsService {
     this._error.set(null);
   }
 
+  private getSupabaseHeaders(): HttpHeaders {
+    const key = environment.supabaseAnonKey;
+    
+    // Sanity Check
+    if (!key || key.includes('COLE_SUA_ANON_KEY')) {
+      throw new Error('Chave Supabase não configurada corretamente no environment.ts!');
+    }
+
+    // Log de Request (Segurança/Debug)
+    console.log(`[Supabase Auth] Iniciando request com chave: ${key.substring(0, 5)}...`);
+
+    const sessionToken = localStorage.getItem('sb-token');
+    const authHeader = sessionToken ? `Bearer ${sessionToken}` : `Bearer ${key}`;
+
+    return new HttpHeaders({
+      'apikey': key,
+      'Authorization': authHeader,
+      'Content-Type': 'application/json'
+    });
+  }
+
   // Busca lista real de Leads via Supabase REST API
   public fetchLeads() {
     this._isInitialLoading.set(true);
     const url = `${environment.supabaseUrl}/rest/v1/leads?select=*`;
-    const headers = { 'apikey': environment.supabaseAnonKey };
-
-    this.http.get<Lead[]>(url, { headers }).subscribe({
-      next: (data) => {
-        this._leads.set(data || []);
-        this._isInitialLoading.set(false);
-      },
-      error: (err) => {
-        console.error('Error fetching leads:', err);
-        this._error.set('Falha ao carregar leads. Verifique suas permissões (RLS).');
-        this._isInitialLoading.set(false);
-      }
-    });
+    
+    try {
+      const headers = this.getSupabaseHeaders();
+      this.http.get<Lead[]>(url, { headers }).subscribe({
+        next: (data) => {
+          this._leads.set(data || []);
+          this._isInitialLoading.set(false);
+        },
+        error: (err) => {
+          console.error('Error fetching leads:', err);
+          this._error.set('Falha ao carregar leads. Verifique suas permissões (RLS).');
+          this._isInitialLoading.set(false);
+        }
+      });
+    } catch (e: any) {
+      this._error.set(e.message);
+      this._isInitialLoading.set(false);
+    }
   }
 
   // Busca a primeira Campanha ativa para dinamizar a IA
   public fetchActiveCampaign() {
     const url = `${environment.supabaseUrl}/rest/v1/campaigns?select=*&limit=1`;
-    const headers = { 'apikey': environment.supabaseAnonKey };
     
-    this.http.get<Campaign[]>(url, { headers }).subscribe({
-      next: (data) => {
-        if (data && data.length > 0) {
-          this._activeCampaignId.set(data[0].id);
-        } else {
-          this._error.set('Nenhuma campanha ativa encontrada. Crie uma no banco para gerar mensagens.');
+    try {
+      const headers = this.getSupabaseHeaders();
+      this.http.get<Campaign[]>(url, { headers }).subscribe({
+        next: (data) => {
+          if (data && data.length > 0) {
+            this._activeCampaignId.set(data[0].id);
+          } else {
+            this._error.set('Nenhuma campanha ativa encontrada. Crie uma no banco para gerar mensagens.');
+          }
+        },
+        error: (err) => {
+          console.error('Error fetching campaigns:', err);
+          this._error.set('Falha ao carregar campanhas.');
         }
-      },
-      error: (err) => {
-        console.error('Error fetching campaigns:', err);
-        this._error.set('Falha ao carregar campanhas.');
-      }
-    });
+      });
+    } catch (e: any) {
+      this._error.set(e.message);
+    }
   }
 
   public generateAiMessage(leadId: string) {
@@ -101,17 +131,10 @@ export class LeadsService {
     const payload = { leadId, campaignId };
     const url = `${environment.supabaseUrl}/functions/v1/generate-message`;
 
-    // INJEÇÃO EXPLÍCITA DE HEADERS (Exigência do Arquiteto)
-    const sessionToken = localStorage.getItem('sb-token');
-    const authHeader = sessionToken ? `Bearer ${sessionToken}` : `Bearer ${environment.supabaseAnonKey}`;
+    try {
+      const headers = this.getSupabaseHeaders();
 
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': authHeader,
-      'apikey': environment.supabaseAnonKey
-    };
-
-    this.http.post<{ data: AiMessage }>(url, payload, { headers }).subscribe({
+      this.http.post<{ data: AiMessage }>(url, payload, { headers }).subscribe({
       next: (response) => {
         this._generatedMessages.update(messages => [...messages, response.data]);
         this._isGeneratingMessage.set(false);
@@ -139,22 +162,20 @@ export class LeadsService {
     );
     
     // Atualização persistente no banco (PATCH)
-    const sessionToken = localStorage.getItem('sb-token');
-    const authHeader = sessionToken ? `Bearer ${sessionToken}` : `Bearer ${environment.supabaseAnonKey}`;
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': authHeader,
-      'apikey': environment.supabaseAnonKey
-    };
+    try {
+      const headers = this.getSupabaseHeaders();
 
-    this.http.patch(`${environment.supabaseUrl}/rest/v1/leads?id=eq.${leadId}`, 
-      { current_stage_id: newStageId }, 
-      { headers }
-    ).subscribe({
-      error: (err) => {
-        console.error('Error moving lead in DB:', err);
-        this._error.set('Falha ao atualizar etapa do Lead no banco.');
-      }
-    });
+      this.http.patch(`${environment.supabaseUrl}/rest/v1/leads?id=eq.${leadId}`, 
+        { current_stage_id: newStageId }, 
+        { headers }
+      ).subscribe({
+        error: (err) => {
+          console.error('Error moving lead in DB:', err);
+          this._error.set('Falha ao atualizar etapa do Lead no banco.');
+        }
+      });
+    } catch (e: any) {
+      this._error.set(e.message);
+    }
   }
 }
