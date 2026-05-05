@@ -1,11 +1,12 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { of } from 'rxjs';
 import { delay } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { Database } from '../../../../server/src/types/supabase';
 
-type AiMessage = Database['public']['Tables']['ai_messages']['Row'];
+export type AiMessage = Database['public']['Tables']['ai_messages']['Row'];
+export type Lead = Database['public']['Tables']['leads']['Row'];
 
 @Injectable({
   providedIn: 'root'
@@ -18,9 +19,41 @@ export class LeadsService {
   private _error = signal<string | null>(null);
   private _currentLeadId = signal<string | null>(null);
 
+  // Master Leads State
+  private _leads = signal<Lead[]>([
+    {
+      id: '10000000-0000-0000-0000-000000000001',
+      workspace_id: 'ws-1',
+      current_stage_id: 'stage-base',
+      assigned_to: null,
+      name: 'João Silva',
+      email: 'joao@techcorp.com',
+      phone: '11999999999',
+      company: 'TechCorp',
+      job_title: 'CTO',
+      custom_values: null,
+      created_at: new Date().toISOString()
+    },
+    {
+      id: '20000000-0000-0000-0000-000000000002',
+      workspace_id: 'ws-1',
+      current_stage_id: 'stage-mapeado',
+      assigned_to: null,
+      name: 'Maria Souza',
+      email: 'maria@innovate.io',
+      phone: '', 
+      company: 'Innovate',
+      job_title: '', 
+      custom_values: { segmento: 'SaaS' },
+      created_at: new Date().toISOString()
+    }
+  ]);
+
   public readonly isGeneratingMessage = this._isGeneratingMessage.asReadonly();
   public readonly error = this._error.asReadonly();
   public readonly currentLeadId = this._currentLeadId.asReadonly();
+  public readonly allGeneratedMessages = this._generatedMessages.asReadonly();
+  public readonly leads = this._leads.asReadonly();
 
   public readonly messagesForCurrentLead = computed(() => {
     const leadId = this._currentLeadId();
@@ -44,7 +77,7 @@ export class LeadsService {
        this.setCurrentLeadId(leadId);
     }
 
-    if (!environment.production) {
+    if (environment.useMock) {
       const mockMessage: AiMessage = {
         id: crypto.randomUUID(),
         lead_id: leadId,
@@ -72,14 +105,25 @@ export class LeadsService {
     const payload = { leadId, campaignId };
     const url = `${environment.supabaseUrl}/functions/v1/generate-message`;
 
-    this.http.post<{ data: AiMessage }>(url, payload).subscribe({
+    // INJEÇÃO EXPLÍCITA DE HEADERS (Exigência do Arquiteto)
+    // Buscamos o token da sessão ou usamos a anon_key como fallback
+    const sessionToken = localStorage.getItem('sb-token');
+    const authHeader = sessionToken ? `Bearer ${sessionToken}` : `Bearer ${environment.supabaseAnonKey}`;
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': authHeader,
+      'apikey': environment.supabaseAnonKey
+    };
+
+    this.http.post<{ data: AiMessage }>(url, payload, { headers }).subscribe({
       next: (response) => {
         this._generatedMessages.update(messages => [...messages, response.data]);
         this._isGeneratingMessage.set(false);
       },
       error: (err) => {
         console.error('Error generating AI message:', err);
-        this._error.set(err.error?.error || 'Falha ao gerar a mensagem com a IA. Tente novamente.');
+        this._error.set(err.error?.error || 'Falha ao gerar a mensagem com a IA. Verifique os logs da Edge Function.');
         this._isGeneratingMessage.set(false);
       }
     });
@@ -90,5 +134,15 @@ export class LeadsService {
        const newMessages = messages.filter(m => !current.find(c => c.id === m.id));
        return [...current, ...newMessages];
      });
+  }
+
+  public moveLeadToStage(leadId: string, newStageId: string) {
+    this._leads.update(leads => 
+      leads.map(lead => 
+        lead.id === leadId ? { ...lead, current_stage_id: newStageId } : lead
+      )
+    );
+    // Em produção, isso faria uma chamada PATCH para a API do Supabase.
+    // this.http.patch(`${environment.supabaseUrl}/rest/v1/leads?id=eq.${leadId}`, { current_stage_id: newStageId }).subscribe();
   }
 }

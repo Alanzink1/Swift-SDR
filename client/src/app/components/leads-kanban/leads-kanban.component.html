@@ -1,0 +1,175 @@
+<div class="kanban-container">
+  
+  <div class="toast-error" *ngIf="showToast()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+    {{ showToast() }}
+  </div>
+
+  <header class="kanban-header">
+    <div class="header-content">
+      <h1>Leads Kanban</h1>
+      <p>Gerencie seu pipeline e escale abordagens usando IA 🚀</p>
+    </div>
+  </header>
+
+  <div class="kanban-board" cdkDropListGroup>
+    
+    <!-- Coluna: Base -->
+    <div class="kanban-column">
+      <div class="column-header">
+        <h2>Base</h2>
+        <span class="count">{{ leadsBase().length }}</span>
+      </div>
+      <div class="cards-list"
+           cdkDropList
+           [cdkDropListData]="leadsBase()"
+           (cdkDropListDropped)="drop($event, 'stage-base')">
+        @for (lead of leadsBase(); track lead.id) {
+          <div class="lead-card" cdkDrag [cdkDragData]="lead">
+            <div class="card-header">
+              <div class="header-main">
+                <span class="status-glow base"></span>
+                <h3>{{ lead.name }}</h3>
+              </div>
+              <span class="company-badge">{{ lead.company || 'Sem Empresa' }}</span>
+            </div>
+            <p class="role">{{ lead.job_title || 'Sem cargo definido' }}</p>
+            
+            <div class="card-actions">
+              @if (isGeneratingMessage() && currentLeadId() === lead.id) {
+                <button class="btn-generating" disabled>
+                  <span class="spinner"></span> Gerando IA...
+                </button>
+              } @else {
+                <button class="btn-primary" (click)="gerarMensagem(lead.id)">
+                  <span class="btn-text-content">✨ Gerar Mensagem</span>
+                </button>
+              }
+            </div>
+
+            @if (getMessageForLead(lead.id); as msg) {
+              <div class="generated-result fade-in">
+                <strong>Sugestão IA:</strong>
+                <p>{{ msg.content }}</p>
+                <div class="result-actions">
+                  <button class="btn-text">Copiar</button>
+                  <button class="btn-success" (click)="enviarMensagem(lead.id)">Enviar</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Coluna: Mapeado -->
+    <div class="kanban-column">
+      <div class="column-header">
+        <h2>Mapeado</h2>
+        <span class="count">{{ leadsMapeado().length }}</span>
+      </div>
+      <div class="cards-list"
+           cdkDropList
+           [cdkDropListData]="leadsMapeado()"
+           [cdkDropListEnterPredicate]="canDrop"
+           (cdkDropListDropped)="drop($event, 'stage-mapeado')">
+        @for (lead of leadsMapeado(); track lead.id) {
+          <div class="lead-card" cdkDrag [cdkDragData]="lead">
+            <div class="card-header">
+              <div class="header-main">
+                <span class="status-glow mapped"></span>
+                <h3>{{ lead.name }}</h3>
+              </div>
+              <span class="company-badge">{{ lead.company || 'Sem Empresa' }}</span>
+            </div>
+            <p class="role">{{ lead.job_title || 'Sem cargo definido' }}</p>
+            
+            <div class="card-actions">
+              @if (isGeneratingMessage() && currentLeadId() === lead.id) {
+                <button class="btn-generating" disabled>
+                  <span class="spinner"></span> Gerando IA...
+                </button>
+              } @else {
+                <button class="btn-primary" (click)="gerarMensagem(lead.id)">
+                  <span class="btn-text-content">✨ Gerar Mensagem</span>
+                </button>
+              }
+            </div>
+
+            @if (getMessageForLead(lead.id); as msg) {
+              <div class="generated-result fade-in">
+                <strong>Sugestão IA:</strong>
+                <p>{{ msg.content }}</p>
+                <div class="result-actions">
+                  <button class="btn-text">Copiar</button>
+                  <button class="btn-success" (click)="enviarMensagem(lead.id)">Enviar</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Coluna: Tentando Contato -->
+    <div class="kanban-column">
+      <div class="column-header">
+        <h2>Tentando Contato</h2>
+        <span class="count">{{ leadsContato().length }}</span>
+      </div>
+      <div class="cards-list"
+           cdkDropList
+           [cdkDropListData]="leadsContato()"
+           [cdkDropListEnterPredicate]="canDrop"
+           (cdkDropListDropped)="drop($event, 'stage-contato')">
+        @if (leadsContato().length === 0) {
+          <div class="empty-state">
+            <div class="empty-icon-wrapper">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="6"></circle>
+                <circle cx="12" cy="12" r="2"></circle>
+              </svg>
+            </div>
+            <p>Arraste leads quentes ou clique em "Enviar" na sugestão da IA.</p>
+          </div>
+        }
+        @for (lead of leadsContato(); track lead.id) {
+          <div class="lead-card" cdkDrag [cdkDragData]="lead">
+            <div class="card-header">
+              <div class="header-main">
+                <span class="status-glow contact"></span>
+                <h3>{{ lead.name }}</h3>
+              </div>
+              <span class="company-badge">{{ lead.company || 'Sem Empresa' }}</span>
+            </div>
+            <p class="role">{{ lead.job_title || 'Sem cargo definido' }}</p>
+            
+            <div class="card-actions">
+              @if (isGeneratingMessage() && currentLeadId() === lead.id) {
+                <button class="btn-generating" disabled>
+                  <span class="spinner"></span> Gerando IA...
+                </button>
+              } @else {
+                <button class="btn-primary" (click)="gerarMensagem(lead.id)">
+                  <span class="btn-text-content">✨ Re-Gerar</span>
+                </button>
+              }
+            </div>
+
+            @if (getMessageForLead(lead.id); as msg) {
+              <div class="generated-result fade-in">
+                <strong>Sugestão IA:</strong>
+                <p>{{ msg.content }}</p>
+                <div class="result-actions">
+                  <button class="btn-text">Copiar</button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+  </div>
+</div>
