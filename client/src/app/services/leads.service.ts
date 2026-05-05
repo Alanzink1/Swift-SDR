@@ -1,12 +1,11 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { of } from 'rxjs';
-import { delay } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { Database } from '../../../../server/src/types/supabase';
 
 export type AiMessage = Database['public']['Tables']['ai_messages']['Row'];
 export type Lead = Database['public']['Tables']['leads']['Row'];
+export type Campaign = Database['public']['Tables']['campaigns']['Row'];
 
 @Injectable({
   providedIn: 'root'
@@ -14,46 +13,23 @@ export type Lead = Database['public']['Tables']['leads']['Row'];
 export class LeadsService {
   private http = inject(HttpClient);
 
+  private _isInitialLoading = signal<boolean>(true);
   private _isGeneratingMessage = signal<boolean>(false);
   private _generatedMessages = signal<AiMessage[]>([]);
   private _error = signal<string | null>(null);
   private _currentLeadId = signal<string | null>(null);
+  private _activeCampaignId = signal<string | null>(null);
 
-  // Master Leads State
-  private _leads = signal<Lead[]>([
-    {
-      id: '10000000-0000-0000-0000-000000000001',
-      workspace_id: 'ws-1',
-      current_stage_id: 'stage-base',
-      assigned_to: null,
-      name: 'João Silva',
-      email: 'joao@techcorp.com',
-      phone: '11999999999',
-      company: 'TechCorp',
-      job_title: 'CTO',
-      custom_values: null,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: '20000000-0000-0000-0000-000000000002',
-      workspace_id: 'ws-1',
-      current_stage_id: 'stage-mapeado',
-      assigned_to: null,
-      name: 'Maria Souza',
-      email: 'maria@innovate.io',
-      phone: '', 
-      company: 'Innovate',
-      job_title: '', 
-      custom_values: { segmento: 'SaaS' },
-      created_at: new Date().toISOString()
-    }
-  ]);
+  // Master Leads State - Vazio no início
+  private _leads = signal<Lead[]>([]);
 
+  public readonly isInitialLoading = this._isInitialLoading.asReadonly();
   public readonly isGeneratingMessage = this._isGeneratingMessage.asReadonly();
   public readonly error = this._error.asReadonly();
   public readonly currentLeadId = this._currentLeadId.asReadonly();
   public readonly allGeneratedMessages = this._generatedMessages.asReadonly();
   public readonly leads = this._leads.asReadonly();
+  public readonly activeCampaignId = this._activeCampaignId.asReadonly();
 
   public readonly messagesForCurrentLead = computed(() => {
     const leadId = this._currentLeadId();
@@ -69,7 +45,52 @@ export class LeadsService {
     this._error.set(null);
   }
 
-  public generateAiMessage(leadId: string, campaignId: string) {
+  // Busca lista real de Leads via Supabase REST API
+  public fetchLeads() {
+    this._isInitialLoading.set(true);
+    const url = `${environment.supabaseUrl}/rest/v1/leads?select=*`;
+    const headers = { 'apikey': environment.supabaseAnonKey };
+
+    this.http.get<Lead[]>(url, { headers }).subscribe({
+      next: (data) => {
+        this._leads.set(data || []);
+        this._isInitialLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Error fetching leads:', err);
+        this._error.set('Falha ao carregar leads. Verifique suas permissões (RLS).');
+        this._isInitialLoading.set(false);
+      }
+    });
+  }
+
+  // Busca a primeira Campanha ativa para dinamizar a IA
+  public fetchActiveCampaign() {
+    const url = `${environment.supabaseUrl}/rest/v1/campaigns?select=*&limit=1`;
+    const headers = { 'apikey': environment.supabaseAnonKey };
+    
+    this.http.get<Campaign[]>(url, { headers }).subscribe({
+      next: (data) => {
+        if (data && data.length > 0) {
+          this._activeCampaignId.set(data[0].id);
+        } else {
+          this._error.set('Nenhuma campanha ativa encontrada. Crie uma no banco para gerar mensagens.');
+        }
+      },
+      error: (err) => {
+        console.error('Error fetching campaigns:', err);
+        this._error.set('Falha ao carregar campanhas.');
+      }
+    });
+  }
+
+  public generateAiMessage(leadId: string) {
+    const campaignId = this._activeCampaignId();
+    if (!campaignId) {
+      this._error.set('Operação bloqueada: Campanha não encontrada.');
+      return;
+    }
+
     this._isGeneratingMessage.set(true);
     this._error.set(null);
 
@@ -77,36 +98,10 @@ export class LeadsService {
        this.setCurrentLeadId(leadId);
     }
 
-    if (environment.useMock) {
-      const mockMessage: AiMessage = {
-        id: crypto.randomUUID(),
-        lead_id: leadId,
-        campaign_id: campaignId,
-        content: `(MOCK) Olá! Vi que você trabalha na empresa X. Temos uma excelente oportunidade para o seu momento de negócio. Vamos agendar uma breve conversa?`,
-        is_sent: false,
-        created_at: new Date().toISOString()
-      };
-
-      of({ data: mockMessage })
-        .pipe(delay(1500))
-        .subscribe({
-          next: (response) => {
-            this._generatedMessages.update(messages => [...messages, response.data]);
-            this._isGeneratingMessage.set(false);
-          },
-          error: () => {
-            this._error.set('Erro ao simular mock.');
-            this._isGeneratingMessage.set(false);
-          }
-        });
-      return;
-    }
-
     const payload = { leadId, campaignId };
     const url = `${environment.supabaseUrl}/functions/v1/generate-message`;
 
     // INJEÇÃO EXPLÍCITA DE HEADERS (Exigência do Arquiteto)
-    // Buscamos o token da sessão ou usamos a anon_key como fallback
     const sessionToken = localStorage.getItem('sb-token');
     const authHeader = sessionToken ? `Bearer ${sessionToken}` : `Bearer ${environment.supabaseAnonKey}`;
 
@@ -123,7 +118,7 @@ export class LeadsService {
       },
       error: (err) => {
         console.error('Error generating AI message:', err);
-        this._error.set(err.error?.error || 'Falha ao gerar a mensagem com a IA. Verifique os logs da Edge Function.');
+        this._error.set(err.error?.error || 'Falha ao gerar a mensagem com a IA.');
         this._isGeneratingMessage.set(false);
       }
     });
@@ -142,7 +137,24 @@ export class LeadsService {
         lead.id === leadId ? { ...lead, current_stage_id: newStageId } : lead
       )
     );
-    // Em produção, isso faria uma chamada PATCH para a API do Supabase.
-    // this.http.patch(`${environment.supabaseUrl}/rest/v1/leads?id=eq.${leadId}`, { current_stage_id: newStageId }).subscribe();
+    
+    // Atualização persistente no banco (PATCH)
+    const sessionToken = localStorage.getItem('sb-token');
+    const authHeader = sessionToken ? `Bearer ${sessionToken}` : `Bearer ${environment.supabaseAnonKey}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': authHeader,
+      'apikey': environment.supabaseAnonKey
+    };
+
+    this.http.patch(`${environment.supabaseUrl}/rest/v1/leads?id=eq.${leadId}`, 
+      { current_stage_id: newStageId }, 
+      { headers }
+    ).subscribe({
+      error: (err) => {
+        console.error('Error moving lead in DB:', err);
+        this._error.set('Falha ao atualizar etapa do Lead no banco.');
+      }
+    });
   }
 }

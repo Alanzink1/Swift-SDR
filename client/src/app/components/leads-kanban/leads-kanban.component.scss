@@ -419,3 +419,43 @@ button {
     margin: 0;
   }
 }
+
+/* SKELETON LOADING STATE */
+.skeleton-board {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  padding-bottom: 3rem;
+}
+
+.skeleton-column {
+  flex: 0 0 380px;
+  background: rgba(24, 24, 27, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.02);
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.skeleton-header {
+  height: 24px;
+  width: 40%;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.skeleton-card {
+  height: 120px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.4; }
+}

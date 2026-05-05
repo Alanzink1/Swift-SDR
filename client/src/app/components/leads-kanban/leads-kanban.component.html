@@ -12,7 +12,23 @@
     </div>
   </header>
 
-  <div class="kanban-board" cdkDropListGroup>
+  @if (isInitialLoading()) {
+    <div class="skeleton-board">
+      <div class="skeleton-column">
+        <div class="skeleton-header"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+      <div class="skeleton-column">
+        <div class="skeleton-header"></div>
+        <div class="skeleton-card"></div>
+      </div>
+      <div class="skeleton-column">
+        <div class="skeleton-header"></div>
+      </div>
+    </div>
+  } @else {
+    <div class="kanban-board" cdkDropListGroup>
     
     <!-- Coluna: Base -->
     <div class="kanban-column">
@@ -172,4 +188,5 @@
     </div>
 
   </div>
+  }
 </div>

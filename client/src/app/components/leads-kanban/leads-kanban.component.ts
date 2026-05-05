@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { LeadsService, Lead, AiMessage } from '../../services/leads.service';
@@ -10,9 +10,10 @@ import { LeadsService, Lead, AiMessage } from '../../services/leads.service';
   templateUrl: './leads-kanban.component.html',
   styleUrls: ['./leads-kanban.component.scss']
 })
-export class LeadsKanbanComponent {
+export class LeadsKanbanComponent implements OnInit {
   private leadsService = inject(LeadsService);
 
+  public isInitialLoading = this.leadsService.isInitialLoading;
   public isGeneratingMessage = this.leadsService.isGeneratingMessage;
   public currentLeadId = this.leadsService.currentLeadId;
   public messagesForCurrentLead = this.leadsService.messagesForCurrentLead;
@@ -32,6 +33,11 @@ export class LeadsKanbanComponent {
         this.leadsService.clearError(); 
       }
     }, { allowSignalWrites: true });
+  }
+
+  ngOnInit() {
+    this.leadsService.fetchActiveCampaign();
+    this.leadsService.fetchLeads();
   }
 
   public exibirToast(msg: string) {
