@@ -5,7 +5,9 @@ import { Database } from '../../../../server/src/types/supabase';
 
 export type AiMessage = Database['public']['Tables']['ai_messages']['Row'];
 export type Lead = Database['public']['Tables']['leads']['Row'];
+export type LeadInsert = Database['public']['Tables']['leads']['Insert'];
 export type Campaign = Database['public']['Tables']['campaigns']['Row'];
+export type Stage = { id: string; name: string };
 
 @Injectable({
   providedIn: 'root'
@@ -22,6 +24,7 @@ export class LeadsService {
 
   // Master Leads State - Vazio no início
   private _leads = signal<Lead[]>([]);
+  private _stages = signal<Stage[]>([]); // Será populado pelo banco
 
   public readonly isInitialLoading = this._isInitialLoading.asReadonly();
   public readonly isGeneratingMessage = this._isGeneratingMessage.asReadonly();
@@ -30,6 +33,7 @@ export class LeadsService {
   public readonly allGeneratedMessages = this._generatedMessages.asReadonly();
   public readonly leads = this._leads.asReadonly();
   public readonly activeCampaignId = this._activeCampaignId.asReadonly();
+  public readonly stages = this._stages.asReadonly();
 
   public readonly messagesForCurrentLead = computed(() => {
     const leadId = this._currentLeadId();
@@ -87,6 +91,37 @@ export class LeadsService {
     } catch (e: any) {
       this._error.set(e.message);
       this._isInitialLoading.set(false);
+    }
+  }
+
+  // Busca as etapas do funil para garantir UUIDs reais
+  public fetchStages() {
+    const url = `${environment.supabaseUrl}/rest/v1/funnel_stages?select=id,name&order=position.asc`;
+    const fallbackStages: Stage[] = [
+      { id: '00000000-0000-0000-0000-000000000001', name: 'Lead Base' },
+      { id: '00000000-0000-0000-0000-000000000002', name: 'Mapeado' },
+      { id: '00000000-0000-0000-0000-000000000003', name: 'Tentando Contato' }
+    ];
+
+    try {
+      const headers = this.getSupabaseHeaders();
+      this.http.get<any[]>(url, { headers }).subscribe({
+        next: (data) => {
+          if (data && data.length > 0) {
+            this._stages.set(data.map(s => ({ id: s.id, name: s.name })));
+          } else {
+            console.warn('[LeadsService] Banco retornou 0 etapas. Usando fallback.');
+            this._stages.set(fallbackStages);
+          }
+        },
+        error: (err) => {
+          console.error('Error fetching stages:', err);
+          this._stages.set(fallbackStages);
+        }
+      });
+    } catch (e: any) {
+      console.error(e.message);
+      this._stages.set(fallbackStages);
     }
   }
 
@@ -157,6 +192,20 @@ export class LeadsService {
        const newMessages = messages.filter(m => !current.find(c => c.id === m.id));
        return [...current, ...newMessages];
      });
+  }
+
+  public createLead(lead: LeadInsert) {
+    const url = `${environment.supabaseUrl}/rest/v1/leads`;
+    const headers = this.getSupabaseHeaders();
+    
+    // Configura headers para retornar o objeto inserido (Senior Pattern)
+    const postHeaders = headers.set('Prefer', 'return=representation');
+
+    return this.http.post<Lead[]>(url, lead, { headers: postHeaders });
+  }
+
+  public addLeadToSignal(lead: Lead) {
+    this._leads.update(current => [lead, ...current]);
   }
 
   public moveLeadToStage(leadId: string, newStageId: string) {

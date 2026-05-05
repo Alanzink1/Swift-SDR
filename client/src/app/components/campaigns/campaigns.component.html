@@ -1,0 +1,84 @@
+<div class="campaigns-container">
+  <header class="page-header">
+    <div class="header-content">
+      <h1>Módulo de Campanhas</h1>
+      <p>Configure a persona e o contexto para a IA gerar abordagens personalizadas.</p>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <!-- Form Side -->
+    <section class="form-section glass-card">
+      <h2 class="section-title">🚀 Criar Nova Campanha</h2>
+      <form [formGroup]="campaignForm" (ngSubmit)="onSubmit()" class="campaign-form">
+        <div class="form-group">
+          <label for="name">Nome da Campanha</label>
+          <input id="name" type="text" formControlName="name" placeholder="Ex: Outbound SaaS Q3">
+        </div>
+
+        <div class="form-group">
+          <label for="trigger_stage_id">Etapa de Gatilho (Kanban)</label>
+          <select id="trigger_stage_id" formControlName="trigger_stage_id">
+            @for (stage of stages(); track stage.id) {
+              <option [value]="stage.id">{{ stage.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="context">Contexto da Oferta (O que estamos vendendo?)</label>
+          <textarea id="context" formControlName="context" rows="4" placeholder="Descreva seu produto ou serviço e o valor que ele gera..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="system_prompt">Prompt de Persona (Quem a IA deve ser?)</label>
+          <textarea id="system_prompt" formControlName="system_prompt" rows="6" placeholder="Ex: Você é um SDR experiente da empresa X. Use um tom consultivo e amigável..."></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" [disabled]="campaignForm.invalid || isSaving()">
+            @if (isSaving()) {
+              <span class="spinner"></span> Salvando...
+            } @else {
+              Salvar Campanha
+            }
+          </button>
+        </div>
+
+        @if (successMessage()) {
+          <div class="feedback-msg success">{{ successMessage() }}</div>
+        }
+        @if (errorMessage()) {
+          <div class="feedback-msg error">{{ errorMessage() }}</div>
+        }
+      </form>
+    </section>
+
+    <!-- List Side -->
+    <section class="list-section">
+      <h2 class="section-title">📋 Campanhas Ativas</h2>
+      <div class="campaign-grid">
+        @if (isLoading()) {
+          <div class="loading-state">Carregando campanhas...</div>
+        } @else {
+          @for (c of campaigns(); track c.id) {
+            <div class="campaign-card glass-card">
+              <div class="card-header">
+                <h3>{{ c.name }}</h3>
+                <span class="badge" [class.active]="c.is_active">Ativa</span>
+              </div>
+              <p class="card-meta"><b>Gatilho:</b> {{ c.trigger_stage_id }}</p>
+              <div class="card-footer">
+                <button class="btn-ghost">Editar</button>
+              </div>
+            </div>
+          } @empty {
+            <div class="empty-state">
+              <p>Nenhuma campanha cadastrada ainda.</p>
+            </div>
+          }
+        }
+      </div>
+    </section>
+  </div>
+</div>

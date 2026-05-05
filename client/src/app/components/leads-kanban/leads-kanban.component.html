@@ -10,6 +10,12 @@
       <h1>Leads Kanban</h1>
       <p>Gerencie seu pipeline e escale abordagens usando IA 🚀</p>
     </div>
+    <div class="header-actions">
+      <button class="btn-add-lead" (click)="openLeadForm()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        Novo Lead
+      </button>
+    </div>
   </header>
 
   @if (isInitialLoading()) {
@@ -28,7 +34,20 @@
       </div>
     </div>
   } @else {
-    <div class="kanban-board" cdkDropListGroup>
+    
+    @if (totalLeads() === 0) {
+      <div class="global-empty-state">
+        <div class="empty-visual">
+          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
+        </div>
+        <h2>Seu Pipeline está vazio</h2>
+        <p>Comece importando seus primeiros leads para escalar sua operação com IA.</p>
+        <button class="btn-import-primary" (click)="openLeadForm()">
+          🚀 Importar Primeiro Lead
+        </button>
+      </div>
+    } @else {
+      <div class="kanban-board" cdkDropListGroup>
     
     <!-- Coluna: Base -->
     <div class="kanban-column">
@@ -187,6 +206,7 @@
       </div>
     </div>
 
-  </div>
+    </div>
   }
+}
 </div>

@@ -69,9 +69,16 @@ Deno.serve(async (req) => {
     const campaign = campaignRes.data;
 
     const ai = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') || '');
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
     
-    const prompt = `
+    let generatedMessage = '';
+    const modelsToTry = ['gemini-1.5-flash-latest', 'gemini-pro'];
+
+    for (const modelName of modelsToTry) {
+      try {
+        console.info(`[${trackingId}] Attempting generation with model: ${modelName}`);
+        const model = ai.getGenerativeModel({ model: modelName });
+        
+        const prompt = `
 System Instruction / Persona:
 ${campaign.system_prompt || 'Você é um consultor de vendas sênior.'}
 
@@ -86,15 +93,24 @@ Campos Customizados: ${JSON.stringify(lead.custom_values || {})}
 
 Objective: 
 Generate a highly personalized sales message to this lead, following the system instructions and campaign context precisely. Ensure the tone is appropriate for the given persona. The output should be just the final message body.
-    `;
+        `;
 
-    console.info(`[${trackingId}] Calling Gemini API`);
-    const result = await model.generateContent(prompt);
-    const generatedMessage = result.response.text();
+        const result = await model.generateContent(prompt);
+        generatedMessage = result.response.text();
+        
+        if (generatedMessage) {
+          console.info(`[${trackingId}] Success with model: ${modelName}`);
+          break;
+        }
+      } catch (err) {
+        console.warn(`[${trackingId}] Model ${modelName} failed:`, err.message);
+        continue;
+      }
+    }
 
     if (!generatedMessage) {
-       console.error(`[${trackingId}] Gemini returned empty response`);
-       throw new Error("Failed to generate content from Gemini");
+       console.error(`[${trackingId}] All Gemini models failed to return response`);
+       throw new Error("Failed to generate content from all attempted Gemini models");
     }
 
     console.info(`[${trackingId}] Persisting generated message`);

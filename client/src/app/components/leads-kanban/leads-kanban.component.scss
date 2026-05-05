@@ -20,6 +20,9 @@
   margin-bottom: 3rem;
   position: relative;
   z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
   
   h1 {
     font-size: 2.25rem;
@@ -34,6 +37,35 @@
     margin: 0;
     font-size: 1rem;
     letter-spacing: -0.01em;
+  }
+}
+
+.btn-add-lead {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.6);
+    filter: brightness(1.1);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  svg {
+    stroke-width: 2.5;
   }
 }
 
@@ -458,4 +490,65 @@ button {
   0% { opacity: 0.4; }
   50% { opacity: 0.8; }
   100% { opacity: 0.4; }
+}
+
+
+/* GLOBAL EMPTY STATE (Center Stage) */
+.global-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  text-align: center;
+  background: rgba(24, 24, 27, 0.4);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
+  margin-top: 1rem;
+  animation: fadeIn 0.6s ease-out;
+
+  .empty-visual {
+    width: 120px;
+    height: 120px;
+    background: rgba(99, 102, 241, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2rem;
+    color: #818cf8;
+    box-shadow: 0 0 40px rgba(99, 102, 241, 0.2);
+  }
+
+  h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #fff;
+  }
+
+  p {
+    color: #a1a1aa;
+    max-width: 400px;
+    margin-bottom: 2.5rem;
+    line-height: 1.6;
+  }
+}
+
+.btn-import-primary {
+  background: #6366f1;
+  color: #fff;
+  padding: 1rem 2.5rem;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  &:hover {
+    transform: scale(1.05);
+    background: #4f46e5;
+    box-shadow: 0 15px 35px rgba(79, 70, 229, 0.5);
+  }
 }

@@ -1,17 +1,20 @@
 import { Component, computed, effect, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
+import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
+import { DialogModule, Dialog } from '@angular/cdk/dialog';
 import { LeadsService, Lead, AiMessage } from '../../services/leads.service';
+import { LeadFormComponent } from '../lead-form/lead-form.component';
 
 @Component({
   selector: 'app-leads-kanban',
   standalone: true,
-  imports: [CommonModule, DragDropModule],
+  imports: [CommonModule, DragDropModule, DialogModule],
   templateUrl: './leads-kanban.component.html',
   styleUrls: ['./leads-kanban.component.scss']
 })
 export class LeadsKanbanComponent implements OnInit {
-  private leadsService = inject(LeadsService);
+  public leadsService = inject(LeadsService);
+  private dialog = inject(Dialog);
 
   public isInitialLoading = this.leadsService.isInitialLoading;
   public isGeneratingMessage = this.leadsService.isGeneratingMessage;
@@ -21,9 +24,22 @@ export class LeadsKanbanComponent implements OnInit {
   public showToast = signal<string | null>(null);
 
   // Derived Computed Signals for Ultra-Performance (listening to the service master signal)
-  public leadsBase = computed(() => this.leadsService.leads().filter(l => l.current_stage_id === 'stage-base'));
-  public leadsMapeado = computed(() => this.leadsService.leads().filter(l => l.current_stage_id === 'stage-mapeado'));
-  public leadsContato = computed(() => this.leadsService.leads().filter(l => l.current_stage_id === 'stage-contato'));
+  public leadsBase = computed(() => {
+    const stageId = this.leadsService.stages()[0]?.id;
+    return this.leadsService.leads().filter(l => l.current_stage_id === stageId);
+  });
+  
+  public leadsMapeado = computed(() => {
+    const stageId = this.leadsService.stages()[1]?.id;
+    return this.leadsService.leads().filter(l => l.current_stage_id === stageId);
+  });
+  
+  public leadsContato = computed(() => {
+    const stageId = this.leadsService.stages()[2]?.id;
+    return this.leadsService.leads().filter(l => l.current_stage_id === stageId);
+  });
+
+  public totalLeads = computed(() => this.leadsService.leads().length);
 
   constructor() {
     effect(() => {
@@ -36,6 +52,7 @@ export class LeadsKanbanComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.leadsService.fetchStages();
     this.leadsService.fetchActiveCampaign();
     this.leadsService.fetchLeads();
   }
@@ -43,6 +60,13 @@ export class LeadsKanbanComponent implements OnInit {
   public exibirToast(msg: string) {
     this.showToast.set(msg);
     setTimeout(() => this.showToast.set(null), 5000);
+  }
+
+  public openLeadForm() {
+    this.dialog.open(LeadFormComponent, {
+      width: '600px',
+      disableClose: true
+    });
   }
 
   public gerarMensagem(leadId: string) {
