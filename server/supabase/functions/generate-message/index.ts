@@ -1,32 +1,133 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
+import { createClient } from "@supabase/supabase-js"
+import { GoogleGenAI } from "@google/genai"
+import { Database } from "../../../src/types/supabase.ts"
 
-// Setup type definitions for built-in Supabase Runtime APIs
-import "@supabase/functions-js/edge-runtime.d.ts"
-
-console.log("Hello from Functions!")
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
 Deno.serve(async (req) => {
-  const { name } = await req.json()
-  const data = {
-    message: `Hello ${name}!`,
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
   }
 
-  return new Response(
-    JSON.stringify(data),
-    { headers: { "Content-Type": "application/json" } },
-  )
+  const trackingId = crypto.randomUUID();
+  console.info(`[${trackingId}] Request started for generate-message`);
+
+  try {
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      console.warn(`[${trackingId}] Missing Authorization header`);
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const body = await req.json()
+    const { leadId, campaignId } = body
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!leadId || !uuidRegex.test(leadId) || !campaignId || !uuidRegex.test(campaignId)) {
+      console.warn(`[${trackingId}] Invalid payload schema: leadId=${leadId}, campaignId=${campaignId}`);
+      return new Response(JSON.stringify({ error: 'Invalid leadId or campaignId. Must be valid UUIDs.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    console.info(`[${trackingId}] Processing leadId: ${leadId}, campaignId: ${campaignId}`);
+
+    const supabaseClient = createClient<Database>(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+      }
+    )
+
+    console.info(`[${trackingId}] Fetching lead and campaign data concurrently`);
+    const [leadRes, campaignRes] = await Promise.all([
+      supabaseClient.from('leads').select('*').eq('id', leadId).single(),
+      supabaseClient.from('campaigns').select('*').eq('id', campaignId).single()
+    ])
+
+    if (leadRes.error || !leadRes.data) {
+      console.error(`[${trackingId}] Failed to fetch lead:`, leadRes.error);
+      return new Response(JSON.stringify({ error: 'Lead not found or access denied.' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    if (campaignRes.error || !campaignRes.data) {
+      console.error(`[${trackingId}] Failed to fetch campaign:`, campaignRes.error);
+      return new Response(JSON.stringify({ error: 'Campaign not found or access denied.' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    const lead = leadRes.data;
+    const campaign = campaignRes.data;
+
+    const ai = new GoogleGenAI({ apiKey: Deno.env.get('GEMINI_API_KEY') });
+    
+    const prompt = `
+System Instruction / Persona:
+${campaign.system_prompt || 'Você é um consultor de vendas sênior.'}
+
+Campaign Context / Offer:
+${campaign.context || 'Contexto da campanha não fornecido.'}
+
+Lead Details:
+Nome: ${lead.name || 'Desconhecido'}
+Empresa: ${lead.company || 'Desconhecida'}
+Cargo: ${lead.job_title || 'Desconhecido'}
+Campos Customizados: ${JSON.stringify(lead.custom_values || {})}
+
+Objective: 
+Generate a highly personalized sales message to this lead, following the system instructions and campaign context precisely. Ensure the tone is appropriate for the given persona. The output should be just the final message body.
+    `;
+
+    console.info(`[${trackingId}] Calling Gemini API`);
+    const response = await ai.models.generateContent({
+      model: 'gemini-1.5-flash',
+      contents: prompt,
+    });
+
+    const generatedMessage = response.text;
+
+    if (!generatedMessage) {
+       console.error(`[${trackingId}] Gemini returned empty response`);
+       throw new Error("Failed to generate content from Gemini");
+    }
+
+    console.info(`[${trackingId}] Persisting generated message`);
+    const { data: aiMessage, error: insertError } = await supabaseClient
+      .from('ai_messages')
+      .insert({
+        lead_id: leadId,
+        campaign_id: campaignId,
+        content: generatedMessage,
+        is_sent: false
+      })
+      .select()
+      .single()
+
+    if (insertError) {
+      console.error(`[${trackingId}] Failed to save message:`, insertError);
+      return new Response(JSON.stringify({ error: 'Failed to save generated message.' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    console.info(`[${trackingId}] Success`);
+    return new Response(
+      JSON.stringify({ data: aiMessage }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    )
+
+  } catch (error) {
+    console.error(`[${trackingId}] Unexpected error:`, error);
+    return new Response(
+      JSON.stringify({ error: 'Internal Server Error' }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    )
+  }
 })
-
-/* To invoke locally:
-
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
-
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/generate-message' \
-    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
-    --header 'Content-Type: application/json' \
-    --data '{"name":"Functions"}'
-
-*/
