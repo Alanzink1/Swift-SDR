@@ -1,0 +1,168 @@
+:host {
+  display: block;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: #09090b; /* Zinc 950 */
+  color: #f4f4f5;
+}
+
+.app-layout {
+  display: flex;
+  height: 100%;
+  width: 100%;
+}
+
+.sidebar {
+  width: 260px;
+  background-color: #09090b; /* Zinc 950 */
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1rem;
+  z-index: 10;
+}
+
+.workspace-selector {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 2rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .workspace-avatar {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    color: white;
+    margin-right: 0.75rem;
+  }
+
+  .workspace-info {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+
+    .workspace-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #fafafa;
+    }
+
+    .workspace-plan {
+      font-size: 0.7rem;
+      color: #a1a1aa;
+    }
+  }
+
+  .selector-icon {
+    color: #71717a;
+  }
+}
+
+.nav-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  color: #a1a1aa; /* Zinc 400 */
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  svg {
+    margin-right: 0.75rem;
+    stroke-width: 1.5;
+  }
+
+  &:hover {
+    color: #fafafa;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  &.active {
+    color: #818cf8; /* Indigo 400 */
+    background: rgba(79, 70, 229, 0.1); /* Indigo faint */
+    
+    svg {
+      color: #818cf8;
+      stroke-width: 2;
+    }
+  }
+}
+
+.sidebar-spacer {
+  flex-grow: 1;
+}
+
+.bottom-menu {
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 1rem;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .user-avatar img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .user-info {
+    display: flex;
+    flex-direction: column;
+
+    .user-name {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #fafafa;
+    }
+
+    .user-role {
+      font-size: 0.7rem;
+      color: #71717a;
+    }
+  }
+}
+
+.main-content {
+  flex-grow: 1;
+  overflow-y: auto;
+  position: relative;
+  background-color: #09090b;
+}

@@ -46,8 +46,7 @@ export class LeadsKanbanComponent implements OnInit {
   }
 
   public gerarMensagem(leadId: string) {
-    const campaignId = '30000000-0000-0000-0000-000000000003';
-    this.leadsService.generateAiMessage(leadId, campaignId);
+    this.leadsService.generateAiMessage(leadId);
   }
 
   public enviarMensagem(leadId: string) {
