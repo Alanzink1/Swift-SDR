@@ -145,6 +145,11 @@ export class LeadsService {
         this._isGeneratingMessage.set(false);
       }
     });
+    } catch (error) {
+      console.error('Error in generateMessage:', error);
+      this._error.set('Erro ao gerar a mensagem com a IA.');
+      this._isGeneratingMessage.set(false);
+    }
   }
 
   public loadMessagesForLead(messages: AiMessage[]) {
