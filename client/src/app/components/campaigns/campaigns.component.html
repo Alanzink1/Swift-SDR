@@ -57,28 +57,56 @@
     <!-- List Side -->
     <section class="list-section">
       <h2 class="section-title">📋 Campanhas Ativas</h2>
-      <div class="campaign-grid">
-        @if (isLoading()) {
-          <div class="loading-state">Carregando campanhas...</div>
-        } @else {
-          @for (c of campaigns(); track c.id) {
-            <div class="campaign-card glass-card">
-              <div class="card-header">
-                <h3>{{ c.name }}</h3>
-                <span class="badge" [class.active]="c.is_active">Ativa</span>
-              </div>
-              <p class="card-meta"><b>Gatilho:</b> {{ c.trigger_stage_id }}</p>
-              <div class="card-footer">
-                <button class="btn-ghost">Editar</button>
-              </div>
-            </div>
-          } @empty {
-            <div class="empty-state">
-              <p>Nenhuma campanha cadastrada ainda.</p>
-            </div>
-          }
-        }
-      </div>
+      
+      @if (isLoading()) {
+        <div class="loading-state">
+          <span class="spinner"></span> Carregando campanhas...
+        </div>
+      } @else {
+        <div class="table-container glass-card">
+          <table class="campaign-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Etapa Gatilho</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of campaigns(); track c.id) {
+                <tr>
+                  <td>
+                    <div class="campaign-name">
+                      {{ c.name }}
+                    </div>
+                  </td>
+                  <td>
+                    <span class="stage-tag">{{ getStageName(c.trigger_stage_id!) }}</span>
+                  </td>
+                  <td>
+                    <span class="badge" [class.active]="c.is_active">
+                      {{ c.is_active ? 'Ativa' : 'Inativa' }}
+                    </span>
+                  </td>
+                  <td class="actions-cell">
+                    <button class="btn-icon" title="Editar">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                    </button>
+                    <button class="btn-icon delete" title="Excluir" (click)="deleteCampaign(c.id)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4" class="empty-cell">Nenhuma campanha cadastrada.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
     </section>
   </div>
 </div>

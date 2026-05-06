@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DialogRef } from '@angular/cdk/dialog';
 import { LeadsService, LeadInsert } from '../../services/leads.service';
+import { CampaignsService } from '../../services/campaigns.service';
 
 @Component({
   selector: 'app-lead-form',
@@ -14,6 +15,7 @@ import { LeadsService, LeadInsert } from '../../services/leads.service';
 export class LeadFormComponent {
   private fb = inject(FormBuilder);
   private leadsService = inject(LeadsService);
+  private campaignsService = inject(CampaignsService);
   private dialogRef = inject(DialogRef);
 
   public leadForm: FormGroup;
@@ -21,6 +23,7 @@ export class LeadFormComponent {
   public errorMessage = signal<string | null>(null);
   
   public stages = this.leadsService.stages;
+  public campaigns = this.campaignsService.campaigns;
 
   constructor() {
     this.leadForm = this.fb.group({
@@ -30,7 +33,19 @@ export class LeadFormComponent {
       company: [''],
       job_title: [''],
       current_stage_id: ['', [Validators.required]],
-      revenue: [0] // Campo personalizado sample
+      campaign_id: [''],
+      revenue: [0] // Mapeado para custom_values
+    });
+
+    // Aviso de e-mail corporativo
+    this.leadForm.get('email')?.valueChanges.subscribe(email => {
+      const nonCorporate = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com'];
+      const domain = email?.split('@')[1];
+      if (nonCorporate.includes(domain)) {
+        this.errorMessage.set('Nota: E-mails corporativos são preferíveis para prospecção.');
+      } else {
+        this.errorMessage.set(null);
+      }
     });
 
     // Default stage
@@ -53,7 +68,7 @@ export class LeadFormComponent {
     
     const leadPayload: LeadInsert = {
       ...formData,
-      custom_values: { revenue } // Mapeamento para campos personalizados (JSONB)
+      custom_values: { faturamento_anual: revenue } // Mapeamento para JSONB
     };
 
     this.leadsService.createLead(leadPayload).subscribe({

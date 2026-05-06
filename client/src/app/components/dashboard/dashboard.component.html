@@ -1,0 +1,84 @@
+<div class="dashboard-container">
+  <header class="dashboard-header">
+    <div class="header-content">
+      <h1>Bem-vindo ao Swift-SDR</h1>
+      <p>Visão geral da sua operação de vendas e outbound.</p>
+    </div>
+  </header>
+
+  <div class="stats-grid">
+    <div class="stat-card glass-card" [routerLink]="['/leads']" style="cursor: pointer;">
+      <div class="card-icon leads-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="19" cy="11" r="3"/></svg>
+      </div>
+      <div class="card-data">
+        <h3>Leads Totais</h3>
+        <p class="value">{{ leadsCount() }}</p>
+        <span class="trend positive">Monitorando tempo real</span>
+      </div>
+    </div>
+
+    <div class="stat-card glass-card" [routerLink]="['/campaigns']" style="cursor: pointer;">
+      <div class="card-icon campaigns-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>
+      </div>
+      <div class="card-data">
+        <h3>Campanhas Ativas</h3>
+        <p class="value">{{ campaignsCount() }}</p>
+        <span class="trend">Contexto da IA</span>
+      </div>
+    </div>
+
+    <div class="stat-card glass-card">
+      <div class="stat-icon conversion">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="m17 5-5-3-5 3"/><path d="m17 19-5 3-5-3"/><path d="M2 12h20"/><path d="m5 7-3 5 3 5"/><path d="m19 7 3 5-3 5"/></svg>
+      </div>
+      <div class="stat-info">
+        <span class="label">Taxa de Conversão</span>
+        <span class="value">{{ conversionRate() }}%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-main">
+    <section class="recent-leads glass-card">
+      <div class="section-header">
+        <h2>Leads Recentes</h2>
+        <button class="btn-ghost">Ver Todos</button>
+      </div>
+      <div class="lead-mini-list">
+        @for (lead of activeLeads(); track lead.id) {
+          <div class="lead-item" (click)="openLeadDetails(lead)" style="cursor: pointer;">
+            <div class="lead-avatar">{{ lead.name?.charAt(0) }}</div>
+            <div class="lead-details">
+              <span class="name">{{ lead.name }}</span>
+              <span class="meta">{{ lead.company }} • {{ lead.job_title }}</span>
+            </div>
+            <div class="lead-action">
+              <button class="btn-ghost btn-xs">🚀 Gerar IA</button>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-state">Nenhum lead cadastrado.</div>
+        }
+      </div>
+    </section>
+
+    <section class="ai-overview glass-card">
+      <div class="section-header">
+        <h2>Performance da IA</h2>
+      </div>
+      <div class="ai-stats">
+        <div class="ai-chart-placeholder">
+          <!-- Placeholder para gráfico real no futuro -->
+          <div class="chart-bar" style="height: 60%"></div>
+          <div class="chart-bar" style="height: 80%"></div>
+          <div class="chart-bar" style="height: 45%"></div>
+          <div class="chart-bar" style="height: 90%"></div>
+          <div class="chart-bar" style="height: 70%"></div>
+        </div>
+        <p class="ai-note">A IA está otimizando as mensagens para a campanha atual com 85% de aceitação.</p>
+      </div>
+    </section>
+  </div>
+</div>

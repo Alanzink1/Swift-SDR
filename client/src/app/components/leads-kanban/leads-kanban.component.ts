@@ -1,6 +1,6 @@
-import { Component, computed, effect, inject, signal, OnInit } from '@angular/core';
+import { Component, computed, effect, inject, signal, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
+import { CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem, CdkDragStart } from '@angular/cdk/drag-drop';
 import { DialogModule, Dialog } from '@angular/cdk/dialog';
 import { LeadsService, Lead, AiMessage } from '../../services/leads.service';
 import { LeadFormComponent } from '../lead-form/lead-form.component';
@@ -21,23 +21,15 @@ export class LeadsKanbanComponent implements OnInit {
   public currentLeadId = this.leadsService.currentLeadId;
   public messagesForCurrentLead = this.leadsService.messagesForCurrentLead;
   
+  @ViewChild('scrollContainer') scrollContainer!: ElementRef;
+  
   public showToast = signal<string | null>(null);
+  public isDraggingBoard = signal<boolean>(false);
+  public isDraggingCard = signal<boolean>(false);
 
-  // Derived Computed Signals for Ultra-Performance (listening to the service master signal)
-  public leadsBase = computed(() => {
-    const stageId = this.leadsService.stages()[0]?.id;
-    return this.leadsService.leads().filter(l => l.current_stage_id === stageId);
-  });
-  
-  public leadsMapeado = computed(() => {
-    const stageId = this.leadsService.stages()[1]?.id;
-    return this.leadsService.leads().filter(l => l.current_stage_id === stageId);
-  });
-  
-  public leadsContato = computed(() => {
-    const stageId = this.leadsService.stages()[2]?.id;
-    return this.leadsService.leads().filter(l => l.current_stage_id === stageId);
-  });
+  private startX = 0;
+  private scrollLeft = 0;
+  private isMouseDown = false;
 
   public totalLeads = computed(() => this.leadsService.leads().length);
 
@@ -57,9 +49,21 @@ export class LeadsKanbanComponent implements OnInit {
     this.leadsService.fetchLeads();
   }
 
+  public getLeadsByStage(stageId: string): Lead[] {
+    return this.leadsService.leads().filter(l => l.current_stage_id === stageId);
+  }
+
   public exibirToast(msg: string) {
     this.showToast.set(msg);
     setTimeout(() => this.showToast.set(null), 5000);
+  }
+
+  public openFunnelManager() {
+    import('../funnel-management/funnel-management.component').then(m => {
+      this.dialog.open(m.FunnelManagementComponent, {
+        width: '500px'
+      });
+    });
   }
 
   public openLeadForm() {
@@ -69,39 +73,58 @@ export class LeadsKanbanComponent implements OnInit {
     });
   }
 
-  public gerarMensagem(leadId: string) {
-    this.leadsService.generateAiMessage(leadId);
+  public openLeadDetails(lead: Lead) {
+    this.leadsService.setCurrentLeadId(lead.id);
+    // Aqui abriremos o LeadDetailsComponent (será criado a seguir)
+    import('../lead-details/lead-details.component').then(m => {
+      this.dialog.open(m.LeadDetailsComponent, {
+        width: '800px',
+        data: { lead }
+      });
+    });
   }
 
-  public enviarMensagem(leadId: string) {
-    // Requisito: Ação de Envio move automaticamente para 'Tentando Contato'
-    this.leadsService.moveLeadToStage(leadId, 'stage-contato');
+  public onDragStart(event: CdkDragStart) {
+    this.isDraggingCard.set(true);
   }
 
-  public getMessageForLead(leadId: string): AiMessage | undefined {
-    const messages = this.leadsService.allGeneratedMessages();
-    return messages.find((m: AiMessage) => m.lead_id === leadId);
+  public onDragEnd() {
+    this.isDraggingCard.set(false);
   }
 
-  // --- DRAG AND DROP ENGINE ---
+  // --- Lógica de Drag-to-Scroll Horizontal ---
+  public startDragging(e: MouseEvent) {
+    if (this.isDraggingCard()) return;
+    
+    // Só inicia se o clique for no container ou nas colunas (não em cards/botões)
+    const target = e.target as HTMLElement;
+    if (target.closest('.lead-card') || target.closest('button') || target.closest('a')) return;
 
-  // Predicate: Bloqueia drag n drop se o lead não tem campos obrigatórios preenchidos
-  public canDrop = (dragData: any): boolean => {
-    const lead = dragData.data as Lead;
-    if (!lead.phone || !lead.job_title) {
-      this.exibirToast(`Faltam informações obrigatórias para ${lead.name} (Telefone ou Cargo).`);
-      return false;
-    }
-    return true;
+    this.isMouseDown = true;
+    this.isDraggingBoard.set(true);
+    this.startX = e.pageX - this.scrollContainer.nativeElement.offsetLeft;
+    this.scrollLeft = this.scrollContainer.nativeElement.scrollLeft;
+  }
+
+  public stopDragging() {
+    this.isMouseDown = false;
+    this.isDraggingBoard.set(false);
+  }
+
+  public moveEvent(e: MouseEvent) {
+    if (!this.isMouseDown || this.isDraggingCard()) return;
+    e.preventDefault();
+    const x = e.pageX - this.scrollContainer.nativeElement.offsetLeft;
+    const scroll = (x - this.startX) * 1.5; // Multiplicador de velocidade
+    this.scrollContainer.nativeElement.scrollLeft = this.scrollLeft - scroll;
   }
 
   public drop(event: CdkDragDrop<Lead[]>, newStageId: string) {
+    this.onDragEnd();
     if (event.previousContainer === event.container) {
-      // Reordenação na mesma coluna (não implementado o sort index por enquanto)
       return;
     }
     
-    // Mover entre colunas
     const lead = event.item.data as Lead;
     this.leadsService.moveLeadToStage(lead.id, newStageId);
   }

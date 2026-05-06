@@ -75,4 +75,19 @@ export class CampaignsComponent implements OnInit {
       }
     });
   }
+
+  public getStageName(id: string): string {
+    return this.stages().find(s => s.id === id)?.name || id;
+  }
+
+  public deleteCampaign(id: string) {
+    if (confirm('Tem certeza que deseja excluir esta campanha?')) {
+      this.campaignsService.deleteCampaign(id).subscribe({
+        error: (err) => {
+          console.error('Delete error:', err);
+          this.errorMessage.set('Erro ao excluir campanha. Verifique as permissões de RLS.');
+        }
+      });
+    }
+  }
 }

@@ -32,6 +32,16 @@
       </div>
 
       <div class="form-group">
+        <label for="campaign_id">Campanha Vinculada</label>
+        <select id="campaign_id" formControlName="campaign_id">
+          <option value="">Nenhuma (Herança por Etapa)</option>
+          @for (camp of campaigns(); track camp.id) {
+            <option [value]="camp.id">{{ camp.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-group">
         <label for="current_stage_id">Etapa Inicial *</label>
         <select id="current_stage_id" formControlName="current_stage_id">
           @for (stage of stages(); track stage.id) {

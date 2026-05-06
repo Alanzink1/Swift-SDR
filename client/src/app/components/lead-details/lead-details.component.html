@@ -1,0 +1,120 @@
+<div class="details-container">
+  <header class="details-header">
+    <div class="lead-profile">
+      <div class="avatar">{{ data.lead.name?.charAt(0) || 'L' }}</div>
+      <div class="info">
+        <h2>{{ data.lead.name }}</h2>
+        <p>{{ data.lead.job_title }} em <strong>{{ data.lead.company }}</strong></p>
+      </div>
+    </div>
+    <div class="header-right-branding">
+      @if (workspaceLogo()) {
+        <img [src]="workspaceLogo()" class="workspace-logo-badge" [alt]="workspaceName()" />
+      } @else {
+        <span class="workspace-name-badge">{{ workspaceName() }}</span>
+      }
+      <button class="btn-close" (click)="close()">&times;</button>
+    </div>
+  </header>
+
+  <div class="details-content">
+    <div class="tabs">
+      <div class="tab active">Geração de Mensagem (IA)</div>
+    </div>
+
+    <div class="ai-section glass-card">
+      <div class="section-header">
+        <div class="title-group">
+          <h3>🧠 Assistente SDR</h3>
+          <p>Gere abordagens personalizadas baseadas no contexto da campanha ativa.</p>
+        </div>
+        <button 
+          class="btn-primary" 
+          (click)="gerarMensagem()" 
+          [disabled]="isGenerating()"
+        >
+          @if (isGenerating()) {
+            <span class="spinner"></span> Analisando Lead...
+          } @else {
+            Gerar Mensagem com IA
+          }
+        </button>
+      </div>
+
+      <div class="message-display">
+        @if (isGenerating()) {
+          <div class="generation-loader">
+            <div class="skeleton-text skeleton" style="height: 12px; width: 100%"></div>
+            <div class="skeleton-text skeleton" style="height: 12px; width: 90%"></div>
+            <div class="skeleton-text skeleton" style="height: 12px; width: 70%"></div>
+            
+            <div class="progress-container">
+              <div class="progress-bar-fill"></div>
+            </div>
+            <span class="progress-label">Sincronizando contextos...</span>
+          </div>
+        } @else if (latestMessage()) {
+          <div class="message-bubble">
+            <div class="bubble-header">
+              <span>IA Gerou em {{ formatarData(latestMessage()!.created_at) }}</span>
+            </div>
+            <textarea 
+              class="ai-textarea" 
+              [ngModel]="editedMessage() || latestMessage()!.content"
+              (ngModelChange)="onMessageChange($event)"
+              placeholder="Edite a abordagem aqui antes de enviar...">
+            </textarea>
+            <div class="bubble-footer">
+              <button class="btn-ghost" (click)="copiarEEnviar()">
+                Copiar
+              </button>
+              <button class="btn-primary" (click)="enviarWhatsApp()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                Enviar via WhatsApp
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div class="empty-message">
+            <p>Nenhuma mensagem gerada ainda para este lead.</p>
+            <p class="hint">Clique no botão acima para iniciar o motor da Gemini.</p>
+          </div>
+        }
+
+        @if (error()) {
+          <div class="error-msg">{{ error() }}</div>
+        }
+      </div>
+    </div>
+
+    <div class="lead-data-grid">
+      <div class="data-item">
+        <label>E-mail</label>
+        @if (isEditingData()) {
+          <input [(ngModel)]="data.lead.email" class="inline-input">
+        } @else {
+          <span>{{ data.lead.email }}</span>
+        }
+      </div>
+      <div class="data-item">
+        <label>Telefone</label>
+        @if (isEditingData()) {
+          <input [(ngModel)]="data.lead.phone" class="inline-input">
+        } @else {
+          <span>{{ data.lead.phone || 'N/A' }}</span>
+        }
+      </div>
+      <div class="data-item">
+        <label>Ações</label>
+        <div class="action-buttons">
+          @if (isEditingData()) {
+            <button class="btn-primary btn-xs" (click)="saveLeadChanges()">Salvar</button>
+            <button class="btn-ghost btn-xs" (click)="toggleEdit()">Cancelar</button>
+          } @else {
+            <button class="btn-ghost btn-xs" (click)="toggleEdit()">✏️ Editar</button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

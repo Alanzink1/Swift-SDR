@@ -70,6 +70,16 @@ export class CampaignsService {
     return this.http.post<Campaign[]>(url, campaign, { headers });
   }
 
+  public deleteCampaign(id: string) {
+    const url = `${environment.supabaseUrl}/rest/v1/campaigns?id=eq.${id}`;
+    const headers = this.getSupabaseHeaders();
+    
+    // Otimista: remove do sinal local
+    this._campaigns.update(camps => camps.filter(c => c.id !== id));
+    
+    return this.http.delete(url, { headers });
+  }
+
   public clearError() {
     this._error.set(null);
   }
