@@ -1,0 +1,278 @@
+.kanban-container {
+  padding: 1.5rem;
+  height: calc(100vh - 40px); /* Adjust based on your header if needed */
+  display: flex;
+  flex-direction: column;
+  background-color: var(--zinc-950);
+}
+
+.kanban-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--zinc-50);
+      margin: 0;
+    }
+
+    .stats-badge {
+      display: flex;
+      align-items: center;
+      background: var(--zinc-900);
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      border: 1px solid var(--zinc-800);
+      gap: 0.5rem;
+
+      .count {
+        color: var(--indigo-400);
+        font-weight: 700;
+        font-size: 0.875rem;
+      }
+
+      .label {
+        color: var(--zinc-500);
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    .btn-ghost {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      color: #a1a1aa;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      svg {
+        width: 100% !important;
+        height: 100% !important;
+        stroke-width: 2.5;
+        display: block;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.15);
+      }
+    }
+  }
+}
+
+.kanban-board {
+  flex-grow: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.kanban-scroll-wrapper {
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 1rem;
+  cursor: grab;
+  user-select: none;
+
+  &.grabbing {
+    cursor: grabbing;
+    scroll-behavior: auto; /* Desativa suavização nativa durante o drag manual */
+  }
+
+  /* Estilização da scrollbar horizontal */
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--zinc-800);
+    border-radius: 4px;
+  }
+}
+
+.kanban-columns {
+  display: flex;
+  gap: 1rem;
+  height: 100%;
+  min-width: max-content; /* Importante para o scroll horizontal */
+}
+
+.kanban-column {
+  width: 280px;
+  background: rgba(24, 24, 27, 0.4);
+  border: 1px solid var(--zinc-900);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+
+  .column-header {
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--zinc-900);
+
+    h2 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--zinc-400);
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .count-pill {
+      background: var(--zinc-800);
+      color: var(--zinc-400);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.1rem 0.5rem;
+      border-radius: 9999px;
+    }
+  }
+}
+
+.lead-list {
+  padding: 0.75rem;
+  flex-grow: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 100px; /* Garante área para drop */
+}
+
+.lead-card {
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+
+  &:hover {
+    border-color: var(--indigo-500);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--zinc-100);
+    margin: 0 0 0.25rem 0;
+  }
+
+  .company {
+    font-size: 0.8rem;
+    color: var(--zinc-400);
+    margin: 0;
+  }
+
+  .role {
+    font-size: 0.75rem;
+    color: var(--zinc-500);
+    margin: 0.25rem 0 0 0;
+  }
+
+  .card-footer {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+
+    .meta-tag {
+      color: var(--zinc-600);
+      display: flex;
+      align-items: center;
+    }
+  }
+}
+
+/* Drag & Drop Classes */
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 12px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+  background: var(--zinc-900);
+  padding: 1rem;
+  border: 1px solid var(--indigo-500);
+  opacity: 0.9;
+  
+  h3 { color: white; }
+  .company, .role { color: var(--zinc-400); }
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.2;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.lead-list.cdk-drop-list-dragging .lead-card:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.empty-column {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  border: 1px dashed var(--zinc-800);
+  border-radius: 8px;
+  color: var(--zinc-700);
+  font-size: 0.75rem;
+}
+
+.toast-notification {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: var(--zinc-900);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--zinc-800);
+  border-left: 4px solid var(--indigo-500);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.kanban-skeleton {
+  display: flex;
+  gap: 1rem;
+  height: 100%;
+  
+  .column-skeleton {
+    width: 280px;
+    height: 100%;
+    border-radius: 12px;
+  }
+}

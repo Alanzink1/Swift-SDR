@@ -1,0 +1,112 @@
+<div class="campaigns-container">
+  <header class="page-header">
+    <div class="header-content">
+      <h1>Módulo de Campanhas</h1>
+      <p>Configure a persona e o contexto para a IA gerar abordagens personalizadas.</p>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <!-- Form Side -->
+    <section class="form-section glass-card">
+      <h2 class="section-title">🚀 Criar Nova Campanha</h2>
+      <form [formGroup]="campaignForm" (ngSubmit)="onSubmit()" class="campaign-form">
+        <div class="form-group">
+          <label for="name">Nome da Campanha</label>
+          <input id="name" type="text" formControlName="name" placeholder="Ex: Outbound SaaS Q3">
+        </div>
+
+        <div class="form-group">
+          <label for="trigger_stage_id">Etapa de Gatilho (Kanban)</label>
+          <select id="trigger_stage_id" formControlName="trigger_stage_id">
+            @for (stage of stages(); track stage.id) {
+              <option [value]="stage.id">{{ stage.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="context">Contexto da Oferta (O que estamos vendendo?)</label>
+          <textarea id="context" formControlName="context" rows="4" placeholder="Descreva seu produto ou serviço e o valor que ele gera..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="system_prompt">Prompt de Persona (Quem a IA deve ser?)</label>
+          <textarea id="system_prompt" formControlName="system_prompt" rows="6" placeholder="Ex: Você é um SDR experiente da empresa X. Use um tom consultivo e amigável..."></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" [disabled]="campaignForm.invalid || isSaving()">
+            @if (isSaving()) {
+              <span class="spinner"></span> Salvando...
+            } @else {
+              Salvar Campanha
+            }
+          </button>
+        </div>
+
+        @if (successMessage()) {
+          <div class="feedback-msg success">{{ successMessage() }}</div>
+        }
+        @if (errorMessage()) {
+          <div class="feedback-msg error">{{ errorMessage() }}</div>
+        }
+      </form>
+    </section>
+
+    <!-- List Side -->
+    <section class="list-section">
+      <h2 class="section-title">📋 Campanhas Ativas</h2>
+      
+      @if (isLoading()) {
+        <div class="loading-state">
+          <span class="spinner"></span> Carregando campanhas...
+        </div>
+      } @else {
+        <div class="table-container glass-card">
+          <table class="campaign-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Etapa Gatilho</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of campaigns(); track c.id) {
+                <tr>
+                  <td>
+                    <div class="campaign-name">
+                      {{ c.name }}
+                    </div>
+                  </td>
+                  <td>
+                    <span class="stage-tag">{{ getStageName(c.trigger_stage_id!) }}</span>
+                  </td>
+                  <td>
+                    <span class="badge" [class.active]="c.is_active">
+                      {{ c.is_active ? 'Ativa' : 'Inativa' }}
+                    </span>
+                  </td>
+                  <td class="actions-cell">
+                    <button class="btn-icon" title="Editar">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                    </button>
+                    <button class="btn-icon delete" title="Excluir" (click)="deleteCampaign(c.id)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="4" class="empty-cell">Nenhuma campanha cadastrada.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </div>
+</div>
